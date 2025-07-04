@@ -1,37 +1,5 @@
-<div class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-w-[320px] p-4">
-  <div class="flex justify-between items-center mb-4">
-    <h1 class="text-2xl font-bold">Kalkulator</h1>
-    <button (click)="toggleTheme()" class="p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-      <svg *ngIf="!isDarkMode" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
-      <svg *ngIf="isDarkMode" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m8.66-12.66l-.707.707M4.04 19.96l-.707.707M21 12h-1M4 12H3m16.66-7.96l-.707-.707M4.04 4.04l-.707-.707"></path></svg>
-    </button>
-  </div>
-
-  <app-calculator></app-calculator>
-  <!-- @if(!isPaidUser) {
-    <div class="mt-4 p-4 bg-yellow-100 dark:bg-yellow-900 border border-yellow-400 rounded-lg text-center">
-      <p class="text-yellow-800 dark:text-yellow-200">Ads will be displayed here.</p>
-      <a routerLink="/upgrade" class="text-indigo-600 dark:text-indigo-400 hover:underline">Remove ads and unlock history</a>
-    </div>
-  } @else {
-    <div class="mt-4">
-      <h2 class="text-xl font-bold mb-2">History</h2>
-      @for(h of history; track h; let i = $index) {
-        @if(i%2 === 0) {
-          <div class="bg-gray-200 dark:bg-gray-700 rounded-lg p-2 mb-2">
-            {{ h }}
-          </div>
-        }
-      }
-      @for(h of history; track h; let i = $index) {
-        @if(i%2 !== 0) {
-          <div class="bg-gray-300 dark:bg-gray-600 rounded-lg p-2 mb-2">
-            {{ h }}
-          </div>
-        }
-      }
-    </div>
-  } -->
+<div class="bg-gray-400 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-w-[320px] p-4">
+  <app-calculator (changeMode)="toggleThemeTo($event)"></app-calculator>
 </div>
 
 <router-outlet></router-outlet>

@@ -1,4 +1,4 @@
-import { Component, HostListener } from '@angular/core';
+import { Component, EventEmitter, HostListener, Output } from '@angular/core';
 
 @Component({
   selector: 'app-calculator',
@@ -12,7 +12,9 @@ export class CalculatorComponent {
   operator: string | null = null;
   firstOperand: number | null = null;
   waitingForSecondOperand: boolean = false;
-
+  lastTypedChar: string = '';
+  @Output()
+  changeMode = new EventEmitter<'light' | 'dark'>();
   constructor() { }
 
   ngOnInit(): void {
@@ -21,20 +23,59 @@ export class CalculatorComponent {
   @HostListener('document:keydown', ['$event'])
   handleKeyboardEvent(event: KeyboardEvent) {
     const key = event.key;
-
+    let valueToProcess: string = '';
+    if (key === 'l') {
+      this.changeMode.emit('light');
+      return;
+    }
+    if (key === 'd') {
+      this.changeMode.emit('dark');
+      return;
+    }
     if (/[0-9]/.test(key)) {
-      this.appendNumber(key);
+      valueToProcess = key;
     } else if (key === '.') {
-      this.appendDecimal();
+      valueToProcess = '.';
     } else if (['+', '-', '*', '/'].includes(key)) {
-      this.setOperator(key);
+      valueToProcess = key;
     } else if (key === 'Enter') {
-      this.calculateResult();
+      valueToProcess = '=';
     } else if (key === 'Escape') {
-      this.clear();
+      valueToProcess = 'AC';
     } else if (key === 'Backspace') {
       this.display = this.display.slice(0, -1) || '0';
       this.currentValue = this.display;
+      return;
+    }
+
+    if (valueToProcess) {
+      this.handleButtonClick(valueToProcess);
+    }
+  }
+
+  handleButtonClick(value: string) {
+    this.lastTypedChar = value;
+    setTimeout(() => {
+      this.lastTypedChar = '';
+    }, 250);
+
+    switch (value) {
+      case '0': case '1': case '2': case '3': case '4':
+      case '5': case '6': case '7': case '8': case '9':
+        this.appendNumber(value);
+        break;
+      case '.':
+        this.appendDecimal();
+        break;
+      case '+': case '-': case '*': case '/':
+        this.setOperator(value);
+        break;
+      case '=':
+        this.calculateResult();
+        break;
+      case 'AC':
+        this.clear();
+        break;
     }
   }
 
@@ -81,18 +122,44 @@ export class CalculatorComponent {
   }
 
   calculate(num1: number, num2: number, operator: string): number {
+    const getDecimalPlaces = (num: number): number => {
+      const str = num.toString();
+      const match = str.match(/(?:\.(\d+))?(?:[eE]([+-]?\d+))?$/);
+      if (!match) {
+        return 0;
+      }
+      return Math.max(
+        0,
+        (match[1] ? match[1].length : 0) - (match[2] ? +match[2] : 0)
+      );
+    };
+
+    let result: number;
+
     switch (operator) {
       case '+':
-        return num1 + num2;
       case '-':
-        return num1 - num2;
+        const decimalPlaces1 = getDecimalPlaces(num1);
+        const decimalPlaces2 = getDecimalPlaces(num2);
+        const maxDecimalPlaces = Math.max(decimalPlaces1, decimalPlaces2);
+        const multiplier = Math.pow(10, maxDecimalPlaces);
+        if (operator === '+') {
+          result = (num1 * multiplier + num2 * multiplier) / multiplier;
+        } else {
+          result = (num1 * multiplier - num2 * multiplier) / multiplier;
+        }
+        break;
       case '*':
-        return num1 * num2;
+        result = num1 * num2;
+        break;
       case '/':
-        return num1 / num2;
+        result = num1 / num2;
+        break;
       default:
         return num2;
     }
+
+    return parseFloat(result.toFixed(14));
   }
 
   clear() {
@@ -103,4 +170,5 @@ export class CalculatorComponent {
     this.waitingForSecondOperand = false;
   }
 }
+
 
