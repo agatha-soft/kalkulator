@@ -1,0 +1,19 @@
+<div class="p-8 bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+  <h2 class="text-3xl font-bold text-center mb-4">Upgrade to Premium</h2>
+  <p class="text-center mb-8">Unlock an ad-free experience and calculation history for a one-time payment.</p>
+
+  <div class="flex justify-center">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 max-w-sm">
+      <h3 class="text-2xl font-bold text-center mb-4">Lifetime Subscription</h3>
+      <p class="text-5xl font-bold text-center mb-4">$9.99</p>
+      <p class="text-gray-500 dark:text-gray-400 text-center mb-8">One-time payment, lifetime access.</p>
+
+      <!-- FirebaseUI for passwordless auth will go here -->
+      <div id="firebaseui-auth-container"></div>
+
+      <button (click)="initiatePayment()" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700 transition-colors">
+        Pay with Stripe
+      </button>
+    </div>
+  </div>
+</div>
