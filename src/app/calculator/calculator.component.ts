@@ -15,9 +15,20 @@ export class CalculatorComponent {
   lastTypedChar: string = '';
   @Output()
   changeMode = new EventEmitter<'light' | 'dark'>();
+  private numberFormatter!: Intl.NumberFormat;
+
   constructor() { }
 
   ngOnInit(): void {
+    this.numberFormatter = new Intl.NumberFormat(navigator.language);
+  }
+
+  get formattedDisplay(): string {
+    // Handle cases where display might be an operator or an empty string
+    if (isNaN(parseFloat(this.display))) {
+      return this.display;
+    }
+    return this.numberFormatter.format(parseFloat(this.display));
   }
 
   @HostListener('document:keydown', ['$event'])
