@@ -7,11 +7,8 @@ import { Component, EventEmitter, HostListener, Output } from '@angular/core';
   standalone: false
 })
 export class CalculatorComponent {
-  display: string = '0';
-  currentValue: string = '';
-  operator: string | null = null;
-  firstOperand: number | null = null;
-  waitingForSecondOperand: boolean = false;
+  inputs: string[] = ['0'];
+  oldInputs: string[][] = [];
   lastTypedChar: string = '';
   @Output()
   changeMode = new EventEmitter<'light' | 'dark'>();
@@ -24,17 +21,45 @@ export class CalculatorComponent {
   }
 
   get formattedDisplay(): string {
+    const lastInput = this.inputs[this.inputs.length - 1];
+    const numValue = parseFloat(lastInput);
+
     // Handle cases where display might be an operator or an empty string
-    if (isNaN(parseFloat(this.display))) {
-      return this.display;
+    if (isNaN(numValue)) {
+      return lastInput;
     }
-    return this.numberFormatter.format(parseFloat(this.display));
+
+    let formatted = this.numberFormatter.format(numValue);
+    let digitsOnly = formatted.replace(/[^0-9]/g, '');
+
+    // If the number of digits exceeds 12, adjust the number itself
+    if (digitsOnly.length > 12) {
+      // Limit the number to 12 significant digits
+      const preciseNum = numValue.toPrecision(12);
+      formatted = this.numberFormatter.format(parseFloat(preciseNum));
+      digitsOnly = formatted.replace(/[^0-9]/g, '');
+
+      // If after toPrecision and re-formatting, the string is still too long
+      // (e.g., due to scientific notation or locale-specific formatting that adds characters),
+      // then truncate the string itself.
+      if (digitsOnly.length > 12) {
+        // Fallback to scientific notation if it fits within a reasonable length
+        if (numValue.toExponential().length <= 12) {
+          formatted = numValue.toExponential();
+        } else {
+          // As a last resort, just truncate the string representation
+          formatted = formatted.substring(0, 12);
+        }
+      }
+    }
+    return formatted;
   }
 
   @HostListener('document:keydown', ['$event'])
   handleKeyboardEvent(event: KeyboardEvent) {
     const key = event.key;
     let valueToProcess: string = '';
+
     if (key === 'l') {
       this.changeMode.emit('light');
       return;
@@ -43,6 +68,7 @@ export class CalculatorComponent {
       this.changeMode.emit('dark');
       return;
     }
+
     if (/[0-9]/.test(key)) {
       valueToProcess = key;
     } else if (key === '.') {
@@ -54,8 +80,18 @@ export class CalculatorComponent {
     } else if (key === 'Escape') {
       valueToProcess = 'AC';
     } else if (key === 'Backspace') {
-      this.display = this.display.slice(0, -1) || '0';
-      this.currentValue = this.display;
+      // Handle backspace directly
+      if (this.inputs.length > 0) {
+        let lastInput = this.inputs[this.inputs.length - 1];
+        if (lastInput.length > 1) {
+          this.inputs[this.inputs.length - 1] = lastInput.slice(0, -1);
+        } else {
+          this.inputs.pop();
+          if (this.inputs.length === 0) {
+            this.inputs = ['0'];
+          }
+        }
+      }
       return;
     }
 
@@ -70,69 +106,100 @@ export class CalculatorComponent {
       this.lastTypedChar = '';
     }, 250);
 
-    switch (value) {
-      case '0': case '1': case '2': case '3': case '4':
-      case '5': case '6': case '7': case '8': case '9':
-        this.appendNumber(value);
-        break;
-      case '.':
-        this.appendDecimal();
-        break;
-      case '+': case '-': case '*': case '/':
-        this.setOperator(value);
-        break;
-      case '=':
-        this.calculateResult();
-        break;
-      case 'AC':
-        this.clear();
-        break;
+    const lastInput = this.inputs[this.inputs.length - 1];
+    const isLastInputOperator = this.isOperator(lastInput);
+
+    if (value === 'AC') {
+      if (this.inputs.length > 0 && !(this.inputs.length === 1 && this.inputs[0] === '0')) {
+        this.oldInputs.push([...this.inputs]); // Archive current inputs
+      }
+      this.inputs = ['0'];
+      return;
+    }
+
+    if (value === '=') {
+      if (this.inputs.length === 0 || isLastInputOperator) {
+        return; // Cannot calculate if no input or ends with operator
+      }
+      this.oldInputs.push([...this.inputs]); // Archive before calculation
+      const result = this.evaluateExpression(this.inputs);
+      this.inputs = [result.toString()];
+      return;
+    }
+
+    if (this.isDigit(value) || value === '.') {
+      if (isLastInputOperator || (this.inputs.length === 1 && lastInput === '0' && value !== '.')) {
+        // Start a new number
+        if (value === '.' && (this.inputs.length === 0 || isLastInputOperator)) {
+          this.inputs.push('0.');
+        } else if (this.inputs.length === 1 && lastInput === '0' && value !== '.') {
+          this.inputs[this.inputs.length - 1] = value;
+        } else {
+          this.inputs.push(value);
+        }
+      } else {
+        // Append to current number
+        if (value === '.' && lastInput.includes('.')) {
+          return; // Prevent multiple decimals
+        }
+        // Limit digit input to 12 (excluding decimal point for count)
+        const currentNumberDigits = lastInput.replace(/[^0-9]/g, '').length;
+        if (currentNumberDigits >= 12) {
+          return;
+        }
+        this.inputs[this.inputs.length - 1] += value;
+      }
+    } else if (this.isOperator(value)) {
+      if (this.inputs.length === 0) {
+        return; // Cannot start with an operator
+      }
+      if (isLastInputOperator) {
+        // Replace last operator
+        this.inputs[this.inputs.length - 1] = value;
+      } else {
+        // Add new operator
+        this.inputs.push(value);
+      }
     }
   }
 
-  appendNumber(num: string) {
-    if (this.waitingForSecondOperand) {
-      this.display = num;
-      this.waitingForSecondOperand = false;
-    } else {
-      this.display = this.display === '0' ? num : this.display + num;
-    }
-    this.currentValue = this.display;
+  private isDigit(char: string): boolean {
+    return /[0-9]/.test(char);
   }
 
-  appendDecimal() {
-    if (this.waitingForSecondOperand) {
-      this.display = '0.';
-      this.waitingForSecondOperand = false;
-    } else if (!this.display.includes('.')) {
-      this.display += '.';
-    }
-    this.currentValue = this.display;
+  private isOperator(char: string): boolean {
+    return ['+', '-', '*', '/'].includes(char);
   }
 
-  setOperator(op: string) {
-    if (this.firstOperand === null) {
-      this.firstOperand = parseFloat(this.currentValue);
-    } else if (this.operator) {
-      const result = this.calculate(this.firstOperand, parseFloat(this.currentValue), this.operator);
-      this.display = result.toString();
-      this.firstOperand = result;
+  private evaluateExpression(expression: string[]): number {
+    // Simple left-to-right evaluation
+    if (expression.length === 0) return 0;
+    if (expression.length === 1) return parseFloat(expression[0]);
+
+    let result = parseFloat(expression[0]);
+    for (let i = 1; i < expression.length; i += 2) {
+      const operator = expression[i];
+      const nextOperand = parseFloat(expression[i + 1]);
+
+      switch (operator) {
+        case '+':
+          result = this.calculate(result, nextOperand, '+');
+          break;
+        case '-':
+          result = this.calculate(result, nextOperand, '-');
+          break;
+        case '*':
+          result = this.calculate(result, nextOperand, '*');
+          break;
+        case '/':
+          result = this.calculate(result, nextOperand, '/');
+          break;
+      }
     }
-    this.operator = op;
-    this.waitingForSecondOperand = true;
+    return result;
   }
 
-  calculateResult() {
-    if (this.firstOperand !== null && this.operator !== null && !this.waitingForSecondOperand) {
-      const result = this.calculate(this.firstOperand, parseFloat(this.currentValue), this.operator);
-      this.display = result.toString();
-      this.firstOperand = result;
-      this.operator = null;
-      this.waitingForSecondOperand = false;
-    }
-  }
-
-  calculate(num1: number, num2: number, operator: string): number {
+  private calculate(num1: number, num2: number, operator: string): number {
     const getDecimalPlaces = (num: number): number => {
       const str = num.toString();
       const match = str.match(/(?:\.(\d+))?(?:[eE]([+-]?\d+))?$/);
@@ -172,14 +239,7 @@ export class CalculatorComponent {
 
     return parseFloat(result.toFixed(14));
   }
-
-  clear() {
-    this.display = '0';
-    this.currentValue = '';
-    this.operator = null;
-    this.firstOperand = null;
-    this.waitingForSecondOperand = false;
-  }
 }
+
 
 

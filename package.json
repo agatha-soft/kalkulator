@@ -4,7 +4,8 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve --port 4422 --verbose",
-    "build": "ng build",
+    "copy-prerender":"cp ./dist/kalkulator/prerendered-routes.json ./dist/kalkulator/browser/prerendered-routes.json",
+    "build": "ng build --configuration production && npm run copy-prerender",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },

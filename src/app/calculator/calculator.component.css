@@ -1,9 +1,14 @@
 
   .btn-calc {
-    @apply p-2 rounded-lg text-xl font-semibold bg-gray-100 hover:bg-gray-300 transition duration-200;
-    position: relative;
-    overflow: hidden;
-  }
+  @apply p-4 rounded-lg text-xl font-semibold bg-gray-100 hover:bg-gray-300 transition duration-200;
+  position: relative;
+  overflow: hidden;
+  outline: none; /* Remove outline */
+}
+
+.btn-calc:focus {
+  outline: none; /* Ensure no outline on focus */
+}
   @keyframes ripple-effect {
     0% {
       background: #f3f4f6;
