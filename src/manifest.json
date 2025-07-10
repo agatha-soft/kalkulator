@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Kalkulator",
-  "version": "1.0",
+  "version": "1.1",
   "description": "A stylish and functional calculator extension.",
   "permissions": ["storage"],
   "action": {
