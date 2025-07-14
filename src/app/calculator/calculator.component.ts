@@ -13,7 +13,7 @@ export class CalculatorComponent {
   @Output()
   changeMode = new EventEmitter<'light' | 'dark'>();
   private numberFormatter!: Intl.NumberFormat;
-
+  private lastTypedCommand: 'digit' | 'point' | 'operator' | 'equal' | 'clear' | '' | 'other' = '';
   constructor() { }
 
   ngOnInit(): void {
@@ -61,25 +61,36 @@ export class CalculatorComponent {
     let valueToProcess: string = '';
 
     if (key === 'l') {
+      this.lastTypedCommand = 'other';
       this.changeMode.emit('light');
       return;
     }
     if (key === 'd') {
+      this.lastTypedCommand = 'other';
       this.changeMode.emit('dark');
       return;
     }
 
-    if (/[0-9]/.test(key)) {
+    if (/[0-9]/.test(key) && !Number.isNaN(parseInt(key))) {
+      if (this.lastTypedCommand === 'equal') {
+        this.handleButtonClick('AC'); // Reset if last command was equal
+      }
+      this.lastTypedCommand = 'digit';
       valueToProcess = key;
     } else if (key === '.') {
+      this.lastTypedCommand = 'point';
       valueToProcess = '.';
     } else if (['+', '-', '*', '/'].includes(key)) {
+      this.lastTypedCommand = 'operator';
       valueToProcess = key;
     } else if (key === 'Enter') {
+      this.lastTypedCommand = 'equal';
       valueToProcess = '=';
-    } else if (key === 'Escape') {
+    } else if (key === 'Escape' || key === 'c' || key === 'C' || key === 'space' || key === 'a' || key === 'A') {
+      this.lastTypedCommand = 'clear';
       valueToProcess = 'AC';
     } else if (key === 'Backspace') {
+      this.lastTypedCommand = 'other';
       // Handle backspace directly
       if (this.inputs.length > 0) {
         let lastInput = this.inputs[this.inputs.length - 1];
@@ -237,7 +248,7 @@ export class CalculatorComponent {
         return num2;
     }
 
-    return parseFloat(result.toFixed(14));
+    return result;
   }
 }
 
